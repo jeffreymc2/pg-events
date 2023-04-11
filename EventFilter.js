@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import supabase from './supabaseClient';
-import './index.css'; // Make sure this line is added
+import './input.css'; // Make sure this line is added
 
 const EventFilter = () => {
   const [startDate, setStartDate] = useState('');
