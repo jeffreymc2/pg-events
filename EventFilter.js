@@ -1,8 +1,6 @@
-// EventFilter.js
-
 import React, { useState, useEffect } from 'react';
 import supabase from './supabaseClient';
-import './EventFilter.css';
+import './index.css'; // Make sure this line is added
 
 const EventFilter = () => {
   const [startDate, setStartDate] = useState('');
@@ -12,21 +10,20 @@ const EventFilter = () => {
   const [ballparkNameFilter, setBallparkNameFilter] = useState('');
   const [events, setEvents] = useState([]);
   const [page, setPage] = useState(1);
-  const perPage = 10;
+  const perPage = 15;
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
-    const fetchEvents = async () => {
-      await handleSubmit(null, page);
-    };
-
-    fetchEvents();
+    loadEvents(page, true);
   }, [page]);
 
-  const handleSubmit = async (e, currentPage) => {
-    if (e) {
-      e.preventDefault();
+  const loadEvents = async (currentPage, reset) => {
+    setIsLoading(true);
+
+    if (reset) {
+      setEvents([]);
     }
-    setEvents([]);
 
     const filters = supabase
       .from('totalevents')
@@ -56,6 +53,7 @@ const EventFilter = () => {
       } else {
         if (Array.isArray(data)) {
           setEvents(data);
+          setHasMore(data.length === perPage);
         } else {
           console.error('Fetched data is not an array:', data);
         }
@@ -63,6 +61,8 @@ const EventFilter = () => {
     } catch (err) {
       console.error(err);
     }
+
+    setIsLoading(false);
   };
 
   const handlePreviousPage = () => {
@@ -75,21 +75,26 @@ const EventFilter = () => {
     setPage(page + 1);
   };
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setPage(1);
+    loadEvents(1, true);
+  };
+
   return (
-    <div className="event-filter-container">
-      <h1>Event Filter</h1>
+    <div className="bg-gray-100 p-8">
+      <h1 className="text-2xl mb-6">Event Filter</h1>
       <form
-        className="event-filter-form"
-        onSubmit={(e) => {
-          handleSubmit(e, page);
-        }}
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6"
+        onSubmit={handleSubmit}
       >
-        <label>
+        <label className="flex flex-col">
           Start Date:
           <input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
+            className="mt-1 p-2 border border-gray-300 rounded"
           />
         </label>
         <label>
@@ -124,9 +129,14 @@ const EventFilter = () => {
             onChange={(e) => setBallparkNameFilter(e.target.value)}
           />
         </label>
-        <button type="submit">Filter Events</button>
+        <button
+          type="submit"
+          className="col-span-1 md:col-span-2 lg:col-span-1 bg-blue-500 text-white py-2 px-4 rounded"
+        >
+          Filter Events
+        </button>{' '}
       </form>
-      <table className="event-filter-table">
+      <table className="w-full text-left border-collapse">
         <thead>
           <tr>
             <th>Event Name</th>
@@ -150,16 +160,21 @@ const EventFilter = () => {
           ))}
         </tbody>
       </table>
-      <div>
-        <button onClick={handlePreviousPage} disabled={page === 1}>
-          Previous
+      {!isLoading && events.length === 0 && (
+        <p>No events found with the current filters.</p>
+      )}
+      {isLoading && <p>Loading...</p>}
+      <div className="pagination">
+        <button onClick={handlePreviousPage} disabled={page <= 1}>
+          Previous Page
         </button>
         <span>Page {page}</span>
-        <button onClick={handleNextPage}>Next</button>
+        <button onClick={handleNextPage} disabled={!hasMore}>
+          Next Page
+        </button>
       </div>
     </div>
   );
 };
 
 export default EventFilter;
-
